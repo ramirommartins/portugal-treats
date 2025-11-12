@@ -1,13 +1,19 @@
 import os
 from flask import Flask, request, jsonify
 from notion_client import Client
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
-# just for the sake of committing. 22
 
-# NOTION DB & SECRET - TBR by variables or config file in production
-NOTION_TOKEN = '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'
-DATABASE_ID = '2a5bed35c6cb80a9937bf8abcde98bd1'
+# NOTION DB & SECRET - Loaded from environment variables
+NOTION_TOKEN = os.environ.get('NOTION_TOKEN')
+DATABASE_ID = os.environ.get('DATABASE_ID')
+
+if not NOTION_TOKEN or not DATABASE_ID:
+    raise ValueError("NOTION_TOKEN and DATABASE_ID environment variables must be set")
 
 notion = Client(auth=NOTION_TOKEN)
 
@@ -103,23 +109,51 @@ def read_treats():
     all_items = []
     cursor = None
     while True:
-        response = notion.databases.query(database_id=DATABASE_ID, start_cursor=cursor, page_size=100)
+        response = notion.databases.query(
+            database_id=DATABASE_ID,
+            start_cursor=cursor,
+            page_size=100
+        )
         for page in response.get('results', []):
             props = page['properties']
+            item = {}
+
+            # Helper function to safely extract property values
+            def get_prop(prop_name, prop_type, default=""):
+                try:
+                    if prop_name not in props:
+                        return default
+                    prop = props[prop_name]
+                    if prop_type == 'title':
+                        return prop['title'][0]['text']['content'] if prop.get('title') else default
+                    elif prop_type == 'rich_text':
+                        return prop['rich_text'][0]['text']['content'] if prop.get('rich_text') else default
+                    elif prop_type == 'url':
+                        return prop['url'] if prop.get('url') else default
+                    elif prop_type == 'number':
+                        return prop['number'] if prop.get('number') is not None else default
+                    elif prop_type == 'checkbox':
+                        return prop.get('checkbox', False)
+                    elif prop_type == 'select':
+                        return prop['select']['name'] if prop.get('select') else default
+                except (KeyError, IndexError, TypeError):
+                    return default
+                return default
+
             item = {
-                "Treat Name": props['Treat Name']['title'][0]['text']['content'] if props['Treat Name']['title'] else "",
-                "Category": props['Category']['rich_text'][0]['text']['content'] if props['Category']['rich_text'] else "",
-                "Description": props['Description']['rich_text'][0]['text']['content'] if props['Description']['rich_text'] else "",
-                "Export Potential": props['Export Potential']['rich_text'][0]['text']['content'] if props['Export Potential']['rich_text'] else "",
-                "Photo": props['Photo']['url'] if props['Photo']['url'] else "",
-                "Price Range": props['Price Range']['rich_text'][0]['text']['content'] if props['Price Range']['rich_text'] else "",
-                "Product Type": props['Product Type']['rich_text'][0]['text']['content'] if props['Product Type']['rich_text'] else "",
-                "Purchase URL": props['Purchase URL']['url'] if props['Purchase URL']['url'] else "",
-                "Rating": props['Rating']['number'] if props['Rating']['number'] is not None else "",
-                "Region": props['Region']['rich_text'][0]['text']['content'] if props['Region']['rich_text'] else "",
-                "Shelf Life": props['Shelf Life']['rich_text'][0]['text']['content'] if props['Shelf Life']['rich_text'] else "",
-                "Tried": props['Tried']['checkbox'],
-                "Where to Buy": props['Where to Buy']['rich_text'][0]['text']['content'] if props['Where to Buy']['rich_text'] else ""
+                "Treat Name": get_prop('Treat Name', 'title'),
+                "Category": get_prop('Category', 'select'),
+                "Description": get_prop('Description', 'rich_text'),
+                "Export Potential": get_prop('Export Potential', 'rich_text'),
+                "Photo": get_prop('Photo', 'url'),
+                "Price Range": get_prop('Price Range', 'rich_text'),
+                "Product Type": get_prop('Product Type', 'rich_text'),
+                "Purchase URL": get_prop('Purchase URL', 'url'),
+                "Rating": get_prop('Rating', 'number'),
+                "Region": get_prop('Region', 'rich_text'),
+                "Shelf Life": get_prop('Shelf Life', 'rich_text'),
+                "Tried": get_prop('Tried', 'checkbox', False),
+                "Where to Buy": get_prop('Where to Buy', 'rich_text')
             }
             all_items.append(item)
         if response.get('has_more', False):
