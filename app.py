@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from notion_client import Client
 
 app = Flask(__name__)
+# just for the sake of committing. 
 
 # NOTION DB & SECRET - TBR by variables or config file in production
 NOTION_TOKEN = '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'
