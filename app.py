@@ -4,6 +4,7 @@ from notion_client import Client
 
 app = Flask(__name__)
 
+# NOTION DB & SECRET - TBR by variables or config file in production
 NOTION_TOKEN = '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'
 DATABASE_ID = '2a5bed35c6cb80a9937bf8abcde98bd1'
 
