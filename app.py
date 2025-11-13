@@ -87,9 +87,6 @@ def format_properties(item):
         "Export Potential": {
             "select": {"name": item.get("Export Potential", "")} if item.get("Export Potential") else None
         },
-        "Photo": {
-            "url": item.get("Photo") or None
-        },
         "Price Range": {
             "select": {"name": map_price_to_range(item.get("Price Range"))} if map_price_to_range(item.get("Price Range")) else None
         },
@@ -107,9 +104,6 @@ def format_properties(item):
         },
         "Shelf Life": {
             "select": {"name": item.get("Shelf Life", "")} if item.get("Shelf Life") else None
-        },
-        "Tried": {
-            "checkbox": str(item.get("Tried", "")).strip().lower() in ["yes", "true", "1"]
         },
         "Where to Buy": {
             "rich_text": [{"text": {"content": item.get("Where to Buy", "")}}]
@@ -188,14 +182,12 @@ def read_treats():
                 "Category": get_prop('Category', 'select'),
                 "Description": get_prop('Description', 'rich_text'),
                 "Export Potential": get_prop('Export Potential', 'rich_text'),
-                "Photo": get_prop('Photo', 'url'),
                 "Price Range": get_prop('Price Range', 'select'),
                 "Product Type": get_prop('Product Type', 'rich_text'),
                 "Purchase URL": get_prop('Purchase URL', 'url'),
                 "Rating": get_prop('Rating', 'number'),
                 "Region": get_prop('Region', 'rich_text'),
                 "Shelf Life": get_prop('Shelf Life', 'rich_text'),
-                "Tried": get_prop('Tried', 'checkbox', False),
                 "Where to Buy": get_prop('Where to Buy', 'rich_text')
             }
             all_items.append(item)
