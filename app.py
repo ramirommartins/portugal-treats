@@ -29,6 +29,49 @@ def find_page_by_name(name):
     results = query.get('results', [])
     return results[0] if results else None
 
+# Helper: Map price to price range category
+def map_price_to_range(price_input):
+    """
+    Convert price input to one of the predefined Price Range values.
+    Accepts:
+    - Already valid categories: "€ (Budget)", "€€ (Moderate)", "€€€ (Premium)"
+    - Numeric values or strings containing numbers (e.g., "4,95 €", "15", 25.50)
+
+    Returns one of: "€ (Budget)", "€€ (Moderate)", "€€€ (Premium)", or None
+    """
+    if not price_input:
+        return None
+
+    price_str = str(price_input).strip()
+
+    # If already a valid category, return it
+    valid_categories = ["€ (Budget)", "€€ (Moderate)", "€€€ (Premium)"]
+    if price_str in valid_categories:
+        return price_str
+
+    # Try to extract numeric value
+    import re
+    # Remove currency symbols and extract number
+    # Handles formats like "4,95 €", "15.50", "20€", etc.
+    number_match = re.search(r'(\d+[,.]?\d*)', price_str)
+    if number_match:
+        # Replace comma with dot for float conversion
+        number_str = number_match.group(1).replace(',', '.')
+        try:
+            price_value = float(number_str)
+
+            # Map to category based on ranges
+            if 1 <= price_value <= 5:
+                return "€ (Budget)"
+            elif 6 <= price_value <= 20:
+                return "€€ (Moderate)"
+            elif price_value >= 21:
+                return "€€€ (Premium)"
+        except ValueError:
+            pass
+
+    return None
+
 # Helper: Format one item to match Notion property types
 def format_properties(item):
     return {
@@ -36,34 +79,34 @@ def format_properties(item):
             "title": [{"text": {"content": item.get("Treat Name", "")}}]
         },
         "Category": {
-            "rich_text": [{"text": {"content": item.get("Category", "")}}]
+            "select": {"name": item.get("Category", "")} if item.get("Category") else None
         },
         "Description": {
             "rich_text": [{"text": {"content": item.get("Description", "")}}]
         },
         "Export Potential": {
-            "rich_text": [{"text": {"content": item.get("Export Potential", "")}}]
+            "select": {"name": item.get("Export Potential", "")} if item.get("Export Potential") else None
         },
         "Photo": {
-            "url": item.get("Photo", "")
+            "url": item.get("Photo") or None
         },
         "Price Range": {
-            "rich_text": [{"text": {"content": item.get("Price Range", "")}}]
+            "select": {"name": map_price_to_range(item.get("Price Range"))} if map_price_to_range(item.get("Price Range")) else None
         },
         "Product Type": {
-            "rich_text": [{"text": {"content": item.get("Product Type", "")}}]
+            "select": {"name": item.get("Product Type", "")} if item.get("Product Type") else None
         },
         "Purchase URL": {
-            "url": item.get("Purchase URL", "")
+            "url": item.get("Purchase URL") or None
         },
         "Rating": {
             "number": float(item.get("Rating", 0) or 0)
         },
         "Region": {
-            "rich_text": [{"text": {"content": item.get("Region", "")}}]
+            "select": {"name": item.get("Region", "")} if item.get("Region") else None
         },
         "Shelf Life": {
-            "rich_text": [{"text": {"content": item.get("Shelf Life", "")}}]
+            "select": {"name": item.get("Shelf Life", "")} if item.get("Shelf Life") else None
         },
         "Tried": {
             "checkbox": str(item.get("Tried", "")).strip().lower() in ["yes", "true", "1"]
@@ -146,7 +189,7 @@ def read_treats():
                 "Description": get_prop('Description', 'rich_text'),
                 "Export Potential": get_prop('Export Potential', 'rich_text'),
                 "Photo": get_prop('Photo', 'url'),
-                "Price Range": get_prop('Price Range', 'rich_text'),
+                "Price Range": get_prop('Price Range', 'select'),
                 "Product Type": get_prop('Product Type', 'rich_text'),
                 "Purchase URL": get_prop('Purchase URL', 'url'),
                 "Rating": get_prop('Rating', 'number'),
